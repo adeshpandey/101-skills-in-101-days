@@ -2,12 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	_ "github.com/go-sql-driver/mysql"
+
+	search "./ftsearch"
 )
 
 type Login struct {
@@ -15,7 +16,7 @@ type Login struct {
 	Password string `form:"password" json:"password" xml:"password" binding:"required"`
 }
 
-type Search struct {
+type SearchText struct {
 	Text string `form:"search" json:"search" xml:"search" binding:"required"`
 }
 
@@ -39,45 +40,14 @@ func main() {
 	})
 
 	r.POST("/", func(c *gin.Context) {
-		db, err := sql.Open("mysql", "root:123456@tcp(172.17.0.2:3306)/d1p1")
 
-		if err != nil {
-			panic(err.Error())
-			// c.JSON(http.StatusInternalServerError, gin.H{"error": "DB error"})
-			// return
-		}
-		defer db.Close()
-
-		stmtSlct, err := db.Prepare("SELECT id,title,description from articles where MATCH(title,description) AGAINST (? IN NATURAL LANGUAGE MODE)")
-		if err != nil {
-			panic(err.Error())
-		}
-
-		defer stmtSlct.Close()
-
-		var json Search
+		var json SearchText
 		if err := c.ShouldBind(&json); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		var title string
-		var description string
-		var id int
-
-		rows, err := stmtSlct.Query(json.Text)
-
-		resultSet := []SearchResult{}
-		for rows.Next() {
-
-			err := rows.Scan(&id, &title, &description)
-			if err != nil {
-				log.Fatal(err)
-			}
-			resultSet = append(resultSet, SearchResult{Id: id, Title: title, Description: description})
-
-		}
-
+		resultSet := search.Search(json.Text)
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{"results": resultSet})
 	})
 
@@ -119,6 +89,14 @@ func main() {
 		err = stmtSlct.QueryRow("wwdfwewweerefefeg").Scan(&fullName, &email)
 
 		c.JSON(http.StatusOK, gin.H{"email": email, "full_name": fullName})
+	})
+
+	r.GET("/users/:name/:surname/:age", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"name":     c.Param("name"),
+			"surname":  c.Param("surname"),
+			"age":      c.Param("age"),
+			"location": c.Query("location")})
 	})
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
