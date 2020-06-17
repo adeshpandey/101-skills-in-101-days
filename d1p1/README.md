@@ -20,9 +20,13 @@ Since I have limited my learnings to only 2 hours so I could learn this much onl
 ### How can you see this practice on your machine?
 
 `git clone the repo`
+
 `cd p1d1`
+
 `go get -u github.com/gin-gonic/gin`
+
 `go get -u github.com/go-sql-driver/mysql`
+
 `go run app.go`
 
 
